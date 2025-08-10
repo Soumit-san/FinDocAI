@@ -9,6 +9,34 @@ from financial_analyzer import FinancialAnalyzer
 from market_data import MarketDataService
 from document_parser import DocumentParser
 from investment_strategy import InvestmentStrategy
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+import uvicorn
+
+app = FastAPI(title="FinDocAI", description="AI-powered Financial Document Processing", version="1.0")
+
+@app.get("/")
+async def home():
+    return {"message": "Welcome to FinDocAI API"}
+
+@app.post("/process")
+async def process_document(file: UploadFile = File(...)):
+    try:
+        # Read file content
+        contents = await file.read()
+
+        # TODO: Your document processing logic here
+        # result = process_with_your_model(contents)
+
+        return JSONResponse(content={
+            "filename": file.filename,
+            "status": "success",
+            "message": "Document processed successfully"
+            # "result": result
+        })
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Initialize services
 @st.cache_resource
@@ -642,4 +670,4 @@ def portfolio_dashboard_tab(market_service, investment_strategy):
                 st.error(f"❌ Error analyzing market sentiment: {str(e)}")
 
 if __name__ == "__main__":
-    main()
+   uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
