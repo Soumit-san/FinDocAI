@@ -3,13 +3,23 @@ import os
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 class FinancialAnalyzer:
     def __init__(self):
         # Using Google Gemini API instead of OpenAI
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel('gemini-pro')
+        if genai is None:
+            raise ImportError("google-generativeai package not properly installed")
+        
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable not found")
+        
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         
     def analyze_sentiment(self, document_text):
         """Analyze sentiment of financial documents"""
