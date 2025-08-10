@@ -13,11 +13,19 @@ from investment_strategy import InvestmentStrategy
 # Initialize services
 @st.cache_resource
 def init_services():
-    analyzer = FinancialAnalyzer()
-    market_service = MarketDataService()
-    doc_parser = DocumentParser()
-    investment_strategy = InvestmentStrategy()
-    return analyzer, market_service, doc_parser, investment_strategy
+    try:
+        analyzer = FinancialAnalyzer()
+        market_service = MarketDataService()
+        doc_parser = DocumentParser()
+        investment_strategy = InvestmentStrategy()
+        return analyzer, market_service, doc_parser, investment_strategy
+    except Exception as e:
+        st.error(f"❌ Error initializing services: {str(e)}")
+        if "GEMINI_API_KEY" in str(e):
+            st.error("🔑 Missing GEMINI_API_KEY. Please add your Google Gemini API key to continue.")
+        elif "google.generativeai" in str(e):
+            st.error("📦 Google Generative AI package not properly installed.")
+        raise e
 
 def main():
     st.set_page_config(
@@ -31,7 +39,11 @@ def main():
     st.markdown("Upload financial documents and get AI-powered insights, forecasts, and investment recommendations")
     
     # Initialize services
-    analyzer, market_service, doc_parser, investment_strategy = init_services()
+    try:
+        analyzer, market_service, doc_parser, investment_strategy = init_services()
+    except Exception as e:
+        st.error("❌ Failed to initialize the application. Please check your configuration.")
+        st.stop()
     
     # Sidebar for navigation
     st.sidebar.title("Navigation")
@@ -66,18 +78,56 @@ def document_qa_tab(analyzer, doc_parser):
         # Parse document
         with st.spinner("Parsing document..."):
             try:
+                # Reset file pointer before parsing
+                uploaded_file.seek(0)
                 document_text = doc_parser.parse_document(uploaded_file)
+                
+                if not document_text or len(document_text.strip()) < 10:
+                    st.error("❌ Document appears to be empty or contains very little text. Please try a different file.")
+                    st.info("💡 **Troubleshooting tips:**\n"
+                           "- For PDFs: Ensure it's not a scanned image. Try converting to Word or text format first.\n"
+                           "- For image-based PDFs: Use OCR software to convert to searchable text.\n"
+                           "- Try uploading a different document format (TXT, DOCX).")
+                    return
+                
                 st.session_state['document_text'] = document_text
                 st.success("✅ Document parsed successfully!")
+                
+                # Document validation
+                validation = doc_parser.validate_financial_document(document_text)
+                if not validation['is_financial_document']:
+                    st.warning("⚠️ This document may not be financial in nature. The analysis may not be as accurate.")
+                else:
+                    st.info(f"✅ Financial document detected (confidence: {validation['confidence_score']:.1%})")
                 
                 # Show document preview
                 with st.expander("📖 Document Preview"):
                     st.text_area("Document Content (First 1000 characters)", 
                                 document_text[:1000] + "..." if len(document_text) > 1000 else document_text,
                                 height=200, disabled=True)
+                    
+                    # Show document stats
+                    summary = doc_parser.get_document_summary(document_text)
+                    st.write(f"**Document Stats:** {summary['word_count']} words, {summary['character_count']} characters")
+                    st.write(f"**Type:** {summary.get('document_type', 'Unknown')}")
                 
             except Exception as e:
-                st.error(f"❌ Error parsing document: {str(e)}")
+                error_message = str(e)
+                st.error(f"❌ {error_message}")
+                
+                # Provide specific guidance based on error type
+                if "password" in error_message.lower() or "encrypted" in error_message.lower():
+                    st.info("🔒 **Solution:** Remove password protection from the PDF and try again.")
+                elif "corrupted" in error_message.lower():
+                    st.info("🔧 **Solution:** The file may be damaged. Try re-downloading or using a different file.")
+                elif "no text content" in error_message.lower():
+                    st.info("📄 **Solution:** This appears to be an image-based PDF. Try:\n"
+                           "1. Converting to Word format\n"
+                           "2. Using OCR software to make it searchable\n"
+                           "3. Uploading a text-based version")
+                else:
+                    st.info("💡 **Try:** Upload a different file format (TXT, DOCX) or contact support if the issue persists.")
+                
                 return
         
         # Document Analysis
