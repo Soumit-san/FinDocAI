@@ -235,6 +235,11 @@ def document_qa_tab(analyzer, doc_parser):
                         st.error("❌ Could not generate an answer. Please try rephrasing your question.")
                         return
                     
+                    # Check for service availability issues
+                    if answer.get('data_availability') == 'service_unavailable':
+                        st.warning("⚠️ AI service is at capacity. Try again later or contact support for API quota issues.")
+                        return
+                    
                     st.success("✅ Analysis Complete")
                     st.write("**Answer:**")
                     st.write(answer.get('answer', 'No answer provided'))

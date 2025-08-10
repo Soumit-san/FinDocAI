@@ -19,7 +19,7 @@ class FinancialAnalyzer:
             raise ValueError("GEMINI_API_KEY environment variable not found")
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-1.5-pro')
         
     def analyze_sentiment(self, document_text):
         """Analyze sentiment of financial documents"""
@@ -43,17 +43,59 @@ class FinancialAnalyzer:
             prompt = f"{system_prompt}\n\nAnalyze the sentiment of this financial document:\n\n{document_text[:4000]}"
             response = self.model.generate_content(prompt)
             
-            result = json.loads(response.text)
-            return result
+            # Clean and parse the response
+            response_text = response.text.strip()
+            
+            # Try to extract JSON from the response
+            try:
+                # Look for JSON block in response
+                if "```json" in response_text:
+                    json_start = response_text.find("```json") + 7
+                    json_end = response_text.find("```", json_start)
+                    if json_end != -1:
+                        response_text = response_text[json_start:json_end].strip()
+                
+                result = json.loads(response_text)
+                return result
+            except json.JSONDecodeError:
+                # If JSON parsing fails, analyze the text response
+                text_lower = response_text.lower()
+                if "positive" in text_lower:
+                    sentiment = "positive"
+                    score = 0.5
+                elif "negative" in text_lower:
+                    sentiment = "negative"
+                    score = -0.5
+                else:
+                    sentiment = "neutral"
+                    score = 0.0
+                
+                return {
+                    "sentiment": sentiment,
+                    "confidence": 0.6,
+                    "score": score,
+                    "key_phrases": [],
+                    "reasoning": response_text
+                }
             
         except Exception as e:
-            return {
-                "sentiment": "neutral",
-                "confidence": 0.5,
-                "score": 0.0,
-                "key_phrases": [],
-                "reasoning": f"Error in sentiment analysis: {str(e)}"
-            }
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "429" in error_msg:
+                return {
+                    "sentiment": "neutral",
+                    "confidence": 0.0,
+                    "score": 0.0,
+                    "key_phrases": [],
+                    "reasoning": "AI service at capacity. Please try again later or check your API quota."
+                }
+            else:
+                return {
+                    "sentiment": "neutral",
+                    "confidence": 0.5,
+                    "score": 0.0,
+                    "key_phrases": [],
+                    "reasoning": f"Error in sentiment analysis: {str(e)}"
+                }
     
     def detect_anomalies(self, document_text):
         """Detect anomalies in financial documents"""
@@ -84,16 +126,45 @@ class FinancialAnalyzer:
             prompt = f"{system_prompt}\n\nAnalyze this financial document for anomalies:\n\n{document_text[:4000]}"
             response = self.model.generate_content(prompt)
             
-            result = json.loads(response.text)
-            return result
+            # Clean and parse the response
+            response_text = response.text.strip()
+            
+            # Try to extract JSON from the response
+            try:
+                # Look for JSON block in response
+                if "```json" in response_text:
+                    json_start = response_text.find("```json") + 7
+                    json_end = response_text.find("```", json_start)
+                    if json_end != -1:
+                        response_text = response_text[json_start:json_end].strip()
+                
+                result = json.loads(response_text)
+                return result
+            except json.JSONDecodeError:
+                # If JSON parsing fails, create basic response
+                return {
+                    "anomalies_found": False,
+                    "anomalies": [],
+                    "overall_risk": "unknown",
+                    "analysis": response_text
+                }
             
         except Exception as e:
-            return {
-                "anomalies_found": False,
-                "anomalies": [],
-                "overall_risk": "unknown",
-                "error": str(e)
-            }
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "429" in error_msg:
+                return {
+                    "anomalies_found": False,
+                    "anomalies": [],
+                    "overall_risk": "unknown",
+                    "error": "AI service at capacity. Please try again later or check your API quota."
+                }
+            else:
+                return {
+                    "anomalies_found": False,
+                    "anomalies": [],
+                    "overall_risk": "unknown",
+                    "error": str(e)
+                }
     
     def answer_question(self, document_text, question):
         """Answer questions about financial documents using Q&A"""
@@ -118,17 +189,48 @@ class FinancialAnalyzer:
             prompt = f"{system_prompt}\n\nDocument:\n{document_text[:4000]}\n\nQuestion: {question}"
             response = self.model.generate_content(prompt)
             
-            result = json.loads(response.text)
-            return result
+            # Clean and parse the response
+            response_text = response.text.strip()
+            
+            # Try to extract JSON from the response
+            try:
+                # Look for JSON block in response
+                if "```json" in response_text:
+                    json_start = response_text.find("```json") + 7
+                    json_end = response_text.find("```", json_start)
+                    if json_end != -1:
+                        response_text = response_text[json_start:json_end].strip()
+                
+                result = json.loads(response_text)
+                return result
+            except json.JSONDecodeError:
+                # If JSON parsing fails, create a structured response
+                return {
+                    "answer": response_text,
+                    "confidence": 0.7,
+                    "key_excerpts": [],
+                    "metrics_mentioned": [],
+                    "data_availability": "partial"
+                }
             
         except Exception as e:
-            return {
-                "answer": f"Error processing question: {str(e)}",
-                "confidence": 0.0,
-                "key_excerpts": [],
-                "metrics_mentioned": [],
-                "data_availability": "error"
-            }
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "429" in error_msg:
+                return {
+                    "answer": "The AI service is currently at capacity. Please try again later or check your API quota.",
+                    "confidence": 0.0,
+                    "key_excerpts": [],
+                    "metrics_mentioned": [],
+                    "data_availability": "service_unavailable"
+                }
+            else:
+                return {
+                    "answer": f"Error processing question: {str(e)}",
+                    "confidence": 0.0,
+                    "key_excerpts": [],
+                    "metrics_mentioned": [],
+                    "data_availability": "error"
+                }
     
     def technical_analysis(self, stock_data):
         """Perform technical analysis on stock data"""

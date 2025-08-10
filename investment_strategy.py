@@ -18,7 +18,7 @@ class InvestmentStrategy:
             raise ValueError("GEMINI_API_KEY environment variable not found")
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-1.5-pro')
         
     def generate_recommendations(self, portfolio, market_service):
         """Generate investment recommendations based on portfolio and market data"""
