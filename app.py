@@ -137,51 +137,68 @@ def document_qa_tab(analyzer, doc_parser):
         with col1:
             if st.button("📊 Analyze Sentiment", key="sentiment_btn"):
                 with st.spinner("Analyzing sentiment..."):
-                    sentiment_result = analyzer.analyze_sentiment(document_text)
-                    
-                    sentiment_color = {
-                        'positive': 'green',
-                        'negative': 'red', 
-                        'neutral': 'gray'
-                    }
-                    
-                    st.metric(
-                        "Sentiment",
-                        sentiment_result['sentiment'].title(),
-                        delta=f"Confidence: {sentiment_result['confidence']:.1%}"
-                    )
-                    
-                    # Sentiment visualization
-                    fig = go.Figure(go.Indicator(
-                        mode="gauge+number",
-                        value=sentiment_result['score'],
-                        domain={'x': [0, 1], 'y': [0, 1]},
-                        title={'text': "Sentiment Score"},
-                        gauge={
-                            'axis': {'range': [-1, 1]},
-                            'bar': {'color': sentiment_color[sentiment_result['sentiment']]},
-                            'steps': [
-                                {'range': [-1, -0.3], 'color': "lightcoral"},
-                                {'range': [-0.3, 0.3], 'color': "lightgray"},
-                                {'range': [0.3, 1], 'color': "lightgreen"}
-                            ]
+                    try:
+                        sentiment_result = analyzer.analyze_sentiment(document_text)
+                        
+                        if not sentiment_result or 'sentiment' not in sentiment_result:
+                            st.error("❌ Could not analyze sentiment. Please try again.")
+                            return
+                        
+                        sentiment_color = {
+                            'positive': 'green',
+                            'negative': 'red', 
+                            'neutral': 'gray'
                         }
-                    ))
-                    fig.update_layout(height=300)
-                    st.plotly_chart(fig, use_container_width=True)
+                        
+                        st.metric(
+                            "Sentiment",
+                            sentiment_result.get('sentiment', 'unknown').title(),
+                            delta=f"Confidence: {sentiment_result.get('confidence', 0):.1%}"
+                        )
+                        
+                        # Sentiment visualization
+                        fig = go.Figure(go.Indicator(
+                            mode="gauge+number",
+                            value=sentiment_result.get('score', 0),
+                            domain={'x': [0, 1], 'y': [0, 1]},
+                            title={'text': "Sentiment Score"},
+                            gauge={
+                                'axis': {'range': [-1, 1]},
+                                'bar': {'color': sentiment_color.get(sentiment_result.get('sentiment', 'neutral'), 'gray')},
+                                'steps': [
+                                    {'range': [-1, -0.3], 'color': "lightcoral"},
+                                    {'range': [-0.3, 0.3], 'color': "lightgray"},
+                                    {'range': [0.3, 1], 'color': "lightgreen"}
+                                ]
+                            }
+                        ))
+                        fig.update_layout(height=300)
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                    except Exception as e:
+                        st.error(f"❌ Error analyzing sentiment: {str(e)}")
         
         with col2:
             if st.button("⚠️ Detect Anomalies", key="anomaly_btn"):
                 with st.spinner("Detecting anomalies..."):
-                    anomalies = analyzer.detect_anomalies(document_text)
-                    
-                    if anomalies['anomalies_found']:
-                        st.warning(f"⚠️ {len(anomalies['anomalies'])} anomalies detected")
-                        for i, anomaly in enumerate(anomalies['anomalies'], 1):
-                            st.write(f"{i}. **{anomaly['type']}**: {anomaly['description']}")
-                            st.write(f"   *Severity: {anomaly['severity']}/10*")
-                    else:
-                        st.success("✅ No significant anomalies detected")
+                    try:
+                        anomalies = analyzer.detect_anomalies(document_text)
+                        
+                        if not anomalies:
+                            st.error("❌ Could not detect anomalies. Please try again.")
+                            return
+                        
+                        if anomalies.get('anomalies_found', False) and anomalies.get('anomalies'):
+                            st.warning(f"⚠️ {len(anomalies['anomalies'])} anomalies detected")
+                            for i, anomaly in enumerate(anomalies['anomalies'], 1):
+                                if isinstance(anomaly, dict):
+                                    st.write(f"{i}. **{anomaly.get('type', 'Unknown')}**: {anomaly.get('description', 'No description')}")
+                                    st.write(f"   *Severity: {anomaly.get('severity', 0)}/10*")
+                        else:
+                            st.success("✅ No significant anomalies detected")
+                            
+                    except Exception as e:
+                        st.error(f"❌ Error detecting anomalies: {str(e)}")
         
         # Q&A Section
         st.subheader("💬 Ask Questions About Your Document")
@@ -213,14 +230,19 @@ def document_qa_tab(analyzer, doc_parser):
             with st.spinner("Analyzing document to answer your question..."):
                 try:
                     answer = analyzer.answer_question(st.session_state['document_text'], user_question)
+                    
+                    if not answer or 'answer' not in answer:
+                        st.error("❌ Could not generate an answer. Please try rephrasing your question.")
+                        return
+                    
                     st.success("✅ Analysis Complete")
                     st.write("**Answer:**")
-                    st.write(answer['answer'])
+                    st.write(answer.get('answer', 'No answer provided'))
                     
-                    if answer.get('confidence'):
+                    if answer.get('confidence') and answer['confidence'] > 0:
                         st.write(f"*Confidence: {answer['confidence']:.1%}*")
                         
-                    if answer.get('key_excerpts'):
+                    if answer.get('key_excerpts') and len(answer['key_excerpts']) > 0:
                         with st.expander("📋 Supporting Evidence"):
                             for excerpt in answer['key_excerpts']:
                                 st.write(f"• {excerpt}")
