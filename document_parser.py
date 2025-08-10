@@ -1,6 +1,7 @@
 import PyPDF2
 import io
 import docx
+import pdfplumber
 from typing import Optional
 
 class DocumentParser:
@@ -25,28 +26,95 @@ class DocumentParser:
             raise Exception(f"Error parsing document: {str(e)}")
     
     def _parse_pdf(self, uploaded_file) -> str:
-        """Parse PDF files"""
+        """Parse PDF files with multiple extraction methods"""
         try:
-            # Create a BytesIO object from uploaded file
-            pdf_file = io.BytesIO(uploaded_file.read())
-            
-            # Create PDF reader object
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
-            
+            # Reset file pointer to beginning
+            uploaded_file.seek(0)
+            pdf_data = uploaded_file.read()
             text_content = ""
             
-            # Extract text from all pages
-            for page_num in range(len(pdf_reader.pages)):
-                page = pdf_reader.pages[page_num]
-                text_content += page.extract_text() + "\n"
+            # Method 1: Try pdfplumber first (better for complex layouts and tables)
+            try:
+                pdf_file = io.BytesIO(pdf_data)
+                with pdfplumber.open(pdf_file) as pdf:
+                    for page_num, page in enumerate(pdf.pages):
+                        try:
+                            page_text = page.extract_text()
+                            if page_text:
+                                text_content += page_text + "\n\n"
+                                
+                            # Also extract text from tables if present
+                            tables = page.extract_tables()
+                            for table in tables:
+                                for row in table:
+                                    if row:
+                                        text_content += " | ".join([cell or "" for cell in row]) + "\n"
+                                text_content += "\n"
+                                
+                        except Exception as page_error:
+                            print(f"Warning: pdfplumber failed on page {page_num + 1}: {str(page_error)}")
+                            continue
+                            
+                if text_content.strip():
+                    return text_content.strip()
+                    
+            except Exception as plumber_error:
+                print(f"pdfplumber extraction failed: {str(plumber_error)}")
             
+            # Method 2: Fallback to PyPDF2 if pdfplumber fails
+            try:
+                pdf_file = io.BytesIO(pdf_data)
+                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                
+                for page_num in range(len(pdf_reader.pages)):
+                    page = pdf_reader.pages[page_num]
+                    try:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text_content += page_text + "\n\n"
+                    except Exception as page_error:
+                        print(f"Warning: PyPDF2 failed on page {page_num + 1}: {str(page_error)}")
+                        continue
+                        
+                if text_content.strip():
+                    return text_content.strip()
+                    
+            except Exception as pypdf_error:
+                print(f"PyPDF2 extraction failed: {str(pypdf_error)}")
+            
+            # If both methods fail
             if not text_content.strip():
-                raise ValueError("No text content could be extracted from PDF")
+                # Try to get basic info about the PDF
+                try:
+                    pdf_file = io.BytesIO(pdf_data)
+                    pdf_reader = PyPDF2.PdfReader(pdf_file)
+                    num_pages = len(pdf_reader.pages)
+                    
+                    if num_pages == 0:
+                        raise ValueError("PDF file appears to be empty or corrupted")
+                    else:
+                        raise ValueError(
+                            f"Could not extract text from PDF with {num_pages} pages. "
+                            "This might be a scanned PDF (image-based), encrypted, or have complex formatting. "
+                            "Try: 1) Converting to Word/text format, 2) Using OCR software, or 3) Uploading a different PDF."
+                        )
+                except:
+                    raise ValueError(
+                        "PDF file could not be processed. It may be corrupted, encrypted, or in an unsupported format. "
+                        "Please try uploading a different file."
+                    )
             
-            return text_content
+            return text_content.strip()
             
         except Exception as e:
-            raise Exception(f"Error parsing PDF: {str(e)}")
+            # More specific error handling
+            error_msg = str(e).lower()
+            if "encrypted" in error_msg or "password" in error_msg:
+                raise Exception("PDF is password protected. Please provide an unprotected PDF file.")
+            elif "corrupted" in error_msg or "invalid" in error_msg:
+                raise Exception("PDF file appears to be corrupted. Please try uploading a different file.")
+            else:
+                raise Exception(f"Error parsing PDF: {str(e)}")
     
     def _parse_txt(self, uploaded_file) -> str:
         """Parse text files"""
