@@ -3,13 +3,13 @@ import os
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 class FinancialAnalyzer:
     def __init__(self):
         # Using Google Gemini API instead of OpenAI
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        self.model = genai.GenerativeModel('gemini-pro')
         
     def analyze_sentiment(self, document_text):
         """Analyze sentiment of financial documents"""
@@ -30,16 +30,8 @@ class FinancialAnalyzer:
                 "reasoning": "explanation of analysis"
             }"""
 
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=[
-                    types.Content(role="user", parts=[types.Part(text=f"Analyze the sentiment of this financial document:\n\n{document_text[:4000]}")])
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json"
-                ),
-            )
+            prompt = f"{system_prompt}\n\nAnalyze the sentiment of this financial document:\n\n{document_text[:4000]}"
+            response = self.model.generate_content(prompt)
             
             result = json.loads(response.text)
             return result
@@ -79,16 +71,8 @@ class FinancialAnalyzer:
                 "overall_risk": "low|medium|high"
             }"""
 
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=[
-                    types.Content(role="user", parts=[types.Part(text=f"Analyze this financial document for anomalies:\n\n{document_text[:4000]}")])
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json"
-                ),
-            )
+            prompt = f"{system_prompt}\n\nAnalyze this financial document for anomalies:\n\n{document_text[:4000]}"
+            response = self.model.generate_content(prompt)
             
             result = json.loads(response.text)
             return result
@@ -121,16 +105,8 @@ class FinancialAnalyzer:
                 "data_availability": "complete|partial|insufficient"
             }"""
 
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=[
-                    types.Content(role="user", parts=[types.Part(text=f"Document:\n{document_text[:4000]}\n\nQuestion: {question}")])
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json"
-                ),
-            )
+            prompt = f"{system_prompt}\n\nDocument:\n{document_text[:4000]}\n\nQuestion: {question}"
+            response = self.model.generate_content(prompt)
             
             result = json.loads(response.text)
             return result
@@ -239,16 +215,8 @@ class FinancialAnalyzer:
                 "price_range": {"low": float, "high": float}
             }"""
 
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=[
-                    types.Content(role="user", parts=[types.Part(text=f"Generate 30-day forecast for {symbol} based on:\n{tech_summary}")])
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json"
-                ),
-            )
+            prompt = f"{system_prompt}\n\nGenerate 30-day forecast for {symbol} based on:\n{tech_summary}"
+            response = self.model.generate_content(prompt)
             
             result = json.loads(response.text)
             
@@ -277,7 +245,12 @@ class FinancialAnalyzer:
             return result
             
         except Exception as e:
-            # Fallback forecast
+            # Fallback forecast - define current_price if not available
+            try:
+                current_price = stock_data['Close'].iloc[-1]
+            except:
+                current_price = 100.0  # Fallback price
+                
             return {
                 "target_price": current_price * 1.05,  # 5% increase
                 "expected_return": 0.05,
@@ -285,7 +258,7 @@ class FinancialAnalyzer:
                 "risk_level": "medium",
                 "key_factors": ["Error in detailed analysis"],
                 "price_range": {"low": current_price * 0.95, "high": current_price * 1.15},
-                "dates": pd.date_range(start=stock_data.index[-1] + timedelta(days=1), periods=30, freq='D').tolist(),
+                "dates": pd.date_range(start=datetime.now() + timedelta(days=1), periods=30, freq='D').tolist(),
                 "prices": [current_price * (1 + 0.05 * i/30) for i in range(30)],
                 "error": str(e)
             }

@@ -2,13 +2,13 @@ import json
 import os
 from datetime import datetime, timedelta
 import numpy as np
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 class InvestmentStrategy:
     def __init__(self):
         # Using Google Gemini API instead of OpenAI
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        self.model = genai.GenerativeModel('gemini-pro')
         
     def generate_recommendations(self, portfolio, market_service):
         """Generate investment recommendations based on portfolio and market data"""
@@ -208,16 +208,8 @@ class InvestmentStrategy:
                 "key_factors": ["factor1", "factor2"]
             }"""
 
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=[
-                    types.Content(role="user", parts=[types.Part(text=f"Analyze and recommend action for:\n{analysis_summary}")])
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json"
-                ),
-            )
+            prompt = f"{system_prompt}\n\nAnalyze and recommend action for:\n{analysis_summary}"
+            response = self.model.generate_content(prompt)
             
             result = json.loads(response.text)
             result['symbol'] = symbol
@@ -397,16 +389,8 @@ class InvestmentStrategy:
                 "time_horizon": "short|medium|long"
             }"""
 
-            response = self.client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=[
-                    types.Content(role="user", parts=[types.Part(text=f"Analyze current market conditions:\n{market_summary}")])
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json"
-                ),
-            )
+            prompt = f"{system_prompt}\n\nAnalyze current market conditions:\n{market_summary}"
+            response = self.model.generate_content(prompt)
             
             result = json.loads(response.text)
             return result

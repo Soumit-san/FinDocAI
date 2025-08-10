@@ -162,7 +162,7 @@ class MarketDataService:
             stock = yf.Ticker(symbol)
             calendar = stock.calendar
             
-            if calendar is not None and not calendar.empty:
+            if calendar is not None and isinstance(calendar, pd.DataFrame) and not calendar.empty:
                 return calendar
             else:
                 return pd.DataFrame()
