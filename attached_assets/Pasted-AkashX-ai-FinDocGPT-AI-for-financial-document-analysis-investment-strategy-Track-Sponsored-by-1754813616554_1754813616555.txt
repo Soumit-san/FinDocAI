@@ -1,0 +1,113 @@
+AkashX.ai: FinDocGPT – AI for financial document analysis & investment strategy
+Track: Sponsored by AkashX.ai (logo: )
+1. Introduction
+This challenge invites you to build an AI-powered tool that can transform how financial data is analyzed, predicted, and used for real-time investment decisions. Your goal is to create a solution that processes financial reports, forecasts market trends, and generates actionable buy/sell recommendations based on the predictions.
+The Vision:
+ Create an AI system that:
+Provides deep insights into financial reports.
+
+
+Predicts market trends.
+
+
+Formulates investment strategies for real-time decision-making.
+2. Challenge Breakdown – Think in 3 Stages
+Stage 1: Insights & Analysis (Document Q&A)
+Develop a system to process financial documents (earnings reports, filings, press releases) and extract key insights.
+ Primary Objectives:
+Document Q&A: Answer questions based on financial data (e.g., What is the company’s revenue for the quarter? What are the key risks?)
+
+
+Market Sentiment Analysis: Quantify sentiment from financial communications (positive, negative, neutral).
+
+
+Anomaly Detection: Identify unusual changes in financial metrics that may signal risks.
+
+
+Stage 2: Financial Forecasting
+Integrate forecasting capabilities to predict future financial outcomes based on historical data.
+ Primary Objectives:
+Predict Financial Trends: Forecast stock prices, earnings growth, and market performance.
+
+
+External Data Integration: Enhance predictions with data from Yahoo Finance API, Quandl, or Alpha Vantage.
+
+
+Forecasting Models: Build models to predict stock movements, earnings, or market risks.
+
+
+Stage 3: Investment Strategy & Decision-Making
+Using insights from Stage 1 and Stage 2, develop an investment strategy to recommend buy/sell actions.
+ Primary Objectives:
+Investment Decision-Making: Based on predictions, recommend whether to Buy or Sell a stock.
+
+
+Strategic Decision Support: Use financial data, market sentiment, and forecasts to build clear investment recommendations.
+
+
+3. Dataset Details
+The FinanceBench dataset includes:
+Earnings Reports: Financial documents with revenue, profit, expenses, etc.
+
+
+Market Data: Historical stock prices, trading volume, and financial indicators.
+
+
+Sentiment Data: Text data from earnings calls, press releases, and news articles.
+
+
+Example:
+Earnings Reports: Includes fields like quarterly revenue, net profit, and expenses. The goal is to predict the company’s next quarter performance.
+
+
+Market Data: Includes stock price history and trends used for forecasting.
+
+
+Sentiment Data: Articles or transcripts reflecting market sentiment about a company or industry.
+
+
+4. Technical Requirements
+FinanceBench Dataset Integration: Use and integrate the FinanceBench dataset throughout all stages of the challenge.
+
+
+AI/ML Models: Implement models for text analysis, financial forecasting, and decision-making.
+
+
+Real-Time Processing & Visualization: Build a web-based application for real-time querying, with interactive visualizations (graphs, charts) to present predictions and insights.
+
+
+5. Evaluation Criteria
+Submissions will be evaluated on: Please define and report clear benchmarking metrics
+Accuracy of Predictions: How well does the model forecast financial trends?
+
+
+Effectiveness of Q&A: How accurately can the system answer financial questions?
+
+
+Investment Strategy: How well does the model recommend buy/sell actions based on predictions?
+
+
+User Interface: The usability and clarity of the web interface.
+
+
+Innovation: Creativity in combining financial analysis and strategy development.
+
+
+6. Why This Challenge Matters
+AI-driven financial intelligence is rapidly transforming how decisions are made in the financial industry. By creating a tool that can analyze documents, forecast financial trends, and formulate investment strategies, you’ll be helping shape the future of finance.
+7. Resources
+FinanceBench Dataset: FinanceBench GitHub Repository
+
+
+External Data Sources:
+
+
+Yahoo Finance API
+
+
+Quandl
+
+
+Alpha Vantage                                                                                                                                         
+
+ this is our problem statement, we hv initiated task.....in replit with one of our exsisting project.....it was a document parser...with parses medical insurance docs and tell user whether his policy is eligible for a particular disease...we used gpt4 api and its working.......i want the same to parse this docs so tell me what all i can do to achive and solve above problem statement with my existing project ensure to keep it simple.
